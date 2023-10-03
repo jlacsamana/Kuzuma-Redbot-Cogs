@@ -118,7 +118,7 @@ class AdvancedWelcomes(commands.Cog):
         channel = discord.utils.get(ctx.author.guild.channels, id= await self.config.guild(ctx.author.guild).get_attr("welcome_msg_channel")())
         try:
             await ctx.send("Current welcome channel is: " + channel.mention)
-        except error:
+        except:
             await ctx.send("There is no current channel set. Set one with the setch command.")
         await ctx.send("Sending custom message: " + str(await self.config.guild(ctx.author.guild).get_attr("toggle_msg")()))
         await ctx.send("Sending custom image: "+ str(await self.config.guild(ctx.author.guild).get_attr("toggle_img")()))
