@@ -3,6 +3,7 @@ from redbot.core.bot import Red
 import discord
 import os
 import sys
+import asyncio
 import aiohttp
 import pathlib
 import io
@@ -24,7 +25,8 @@ class AdvancedWelcomes(commands.Cog):
             "randomise_img": False,
             "def_welcome_msg": "Welcome, {USER}", 
             "mandatory_msg_frag": "default mandatory message snippet",
-            "message_pool" : []
+            "message_pool" : [], 
+            "img_avatar_cfgs" : {}
         }
 
         self.config.register_guild(**default_guild)
@@ -65,9 +67,9 @@ class AdvancedWelcomes(commands.Cog):
 
         #if true, process welcome img and send
         if is_randomising_img:
-            custom_img = await self.generate_random_welcome_img(member)
+            custom_img = await self.generate_random_welcome_img(member, guild)
         elif is_sending_img:
-            custom_img = await self.generate_welcome_img(member)
+            custom_img = await self.generate_welcome_img(member, guild)
 
         send_msg = is_sending_msg or is_randomising_img
         send_img = is_sending_img or is_randomising_img
@@ -260,13 +262,42 @@ class AdvancedWelcomes(commands.Cog):
         """Sets the image to be sent when a user joins the server. This must be set before any welcome image is sent. Please only attach 1 image, make it fit into the template provided"""
         base_img_path = os.path.join(self.data_dir, "default.png")
         image = None
-        if len(ctx.message.attachments) == 1:
-            image = ctx.message.attachments[0]
-            image.save(base_img_path)
-        else:
-            await ctx.reply("You need to attach exactly 1 image in the message that uses this command")
+
+        #user needs to specify where in the image should be the center of the joining user's avatar should be
+        await ctx.send("reply to this message with the pixel x-coordinate")
+        x_coord = -1
+        try:
+            x_coord = await self.bot.wait_for("reply", check = lambda context: ctx.author == context.author,timeout=30)
+        except asyncio.TimeoutError:
+            await ctx.send("Adding image cancelled. Timed out. Try again")
             return
 
+        try:
+            x_coord = int(x_coord)
+            assert(x_coord >= 0)
+        except:
+            await ctx.send("Adding image cancelled. Please try again and enter a valid number.")
+            return
+
+        await ctx.send("reply to this message with the pixel y-coordinate")
+        y_coord = -1
+        try:
+            y_coord = await self.bot.wait_for("reply", check = lambda context: ctx.author == context.author,timeout=30)
+        except asyncio.TimeoutError:
+            await ctx.send("Adding image cancelled. Timed out. Try again")
+            return
+
+        try:
+            y_coord = int(y_coord)
+            assert(y_coord >= 0)
+        except:
+            await ctx.send("Adding image cancelled. Please try again and enter a valid number.")
+            return
+
+        #ok now set the coordinate for where to put the avatar
+        fetched_coord_dict = await self.config.guild(ctx.author.guild).get_attr("img_avatar_cfgs")()
+        fetched_coord_dict.update({"default.png": [x_coord, y_coord]})
+        await self.config.guild(ctx.author.guild).img_avatar_cfgs.set(fetched_coord_dict)
 
         # Performing necessary checks to ensure that this base can produce a good generated image
         temp = Image.open(base_img_path)
@@ -293,7 +324,6 @@ class AdvancedWelcomes(commands.Cog):
     async def add_img(self, ctx, name: str):
         """adds another image to the random image pool"""
         #determine potential file name
-        num_pictures = len(os.listdir(self.img_dir))
         file_name = f"{name}.png"
         img_path = os.path.join(self.img_dir, file_name)
 
@@ -301,6 +331,37 @@ class AdvancedWelcomes(commands.Cog):
             await ctx.reply(
                 "This name is already in use! For ease of management, please use another name."
             )
+            return
+        
+        #user needs to specify where in the image should be the center of the joining user's avatar should be
+        await ctx.send("reply to this message with the pixel x-coordinate")
+        x_coord = -1
+        try:
+            x_coord = await self.bot.wait_for("reply", check = lambda context: ctx.author == context.author,timeout=30)
+        except asyncio.TimeoutError:
+            await ctx.send("Adding image cancelled. Timed out. Try again")
+            return
+
+        try:
+            x_coord = int(x_coord)
+            assert(x_coord >= 0)
+        except:
+            await ctx.send("Adding image cancelled. Please try again and enter a valid number.")
+            return
+
+        await ctx.send("reply to this message with the pixel y-coordinate")
+        y_coord = -1
+        try:
+            y_coord = await self.bot.wait_for("reply", check = lambda context: ctx.author == context.author,timeout=30)
+        except asyncio.TimeoutError:
+            await ctx.send("Adding image cancelled. Timed out. Try again")
+            return
+
+        try:
+            y_coord = int(y_coord)
+            assert(y_coord >= 0)
+        except:
+            await ctx.send("Adding image cancelled. Please try again and enter a valid number.")
             return
 
         image = None
@@ -310,6 +371,11 @@ class AdvancedWelcomes(commands.Cog):
         else:
             await ctx.reply("You need to attach exactly 1 image in the message that uses this command")
             return
+        
+        #ok now set the coordinate for where to put the avatar
+        fetched_coord_dict = await self.config.guild(ctx.author.guild).get_attr("img_avatar_cfgs")()
+        fetched_coord_dict.update({file_name: [x_coord, y_coord]})
+        await self.config.guild(ctx.author.guild).img_avatar_cfgs.set(fetched_coord_dict)
 
 
         # Performing necessary checks to ensure that this base can produce a good generated image
@@ -422,7 +488,7 @@ class AdvancedWelcomes(commands.Cog):
 
     ### HELPER FUNCTIONS
     ### CUSTOM WELCOME PICTURE GENERATION ###
-    async def generate_welcome_img(self, user):
+    async def generate_welcome_img(self, user, guild):
         """creates an image for the specific player using their avatar and the set base image, then returns it"""
         base = Image.open(os.path.join(self.data_dir, "default.png"))
         mask = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "MASK.png"))
@@ -441,18 +507,22 @@ class AdvancedWelcomes(commands.Cog):
             if not retrieved_avatar:
                 return
             else:
+                #get coords
+                coords = self.config.guild(guild).get_attr("img_avatar_cfgs")().get("default.png")
+
                 #base = base.resize((1193, 671), 2)
                 retrieved_avatar = retrieved_avatar.resize((325,325), 1)
-                base.paste(border_overlay, (434,0), border_overlay_mask)
-                base.paste(retrieved_avatar, (434,0), mask)
+                base.paste(border_overlay, (coords[0],coords[1]), border_overlay_mask)
+                base.paste(retrieved_avatar, (coords[0],coords[1]), mask)
                 generated = io.BytesIO()
                 base.save(generated, format="png")
                 generated.seek(0)
                 return generated
             
-    async def generate_random_welcome_img(self, user):
+    async def generate_random_welcome_img(self, user, guild):
         """creates an image for the specific player using their avatar and an image from the random image pool, then returns it"""
-        base = Image.open(os.path.join(self.img_dir, random.choice(os.listdir(self.img_dir))))
+        chosen = random.choice(os.listdir(self.img_dir))
+        base = Image.open(os.path.join(self.img_dir, chosen))
         mask = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "MASK.png"))
         border_overlay = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "BORDER.png"))
         border_overlay_mask = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "BORDER_mask.png"))
@@ -469,10 +539,13 @@ class AdvancedWelcomes(commands.Cog):
             if not retrieved_avatar:
                 return
             else:
-                #base = base.resize((1193, 671), 2)
+                #get coords
+                coords = self.config.guild(guild).get_attr("img_avatar_cfgs")().get(chosen)
+
+                #base = base.resize((1193, 671), 2) default (434,0)
                 retrieved_avatar = retrieved_avatar.resize((325,325), 1)
-                base.paste(border_overlay, (434,0), border_overlay_mask)
-                base.paste(retrieved_avatar, (434,0), mask)
+                base.paste(border_overlay, (coords[0],coords[1]), border_overlay_mask)
+                base.paste(retrieved_avatar, (coords[0],coords[1]), mask)
                 generated = io.BytesIO()
                 base.save(generated, format="png")
                 generated.seek(0)
