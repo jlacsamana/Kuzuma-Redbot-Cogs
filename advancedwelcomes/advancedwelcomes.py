@@ -54,36 +54,35 @@ class AdvancedWelcomes(commands.Cog):
 
         #if true, process welcome message and send
         welcome_msg = ""
-        if is_sending_msg:
-            if is_randomising_msg:
-                welcome_msg = str(await self.get_random_welcome_msg(member))
-            else:
-                welcome_msg = str(await self.get_welcome_msg(member))
+        if is_randomising_msg:
+            welcome_msg = str(await self.get_random_welcome_msg(member))
+        elif is_sending_msg:
+            welcome_msg = str(await self.get_welcome_msg(member))
 
-            mandatory  =await self.config.guild(guild).get_attr("mandatory_msg_frag")()
-            welcome_msg = welcome_msg.replace("{USER}", member.mention) + ". " + str(mandatory)
+        mandatory = await self.config.guild(guild).get_attr("mandatory_msg_frag")()
+        welcome_msg = welcome_msg.replace("{USER}", member.mention) + ". " + str(mandatory) if welcome_msg != "" else str(mandatory)
 
 
         #if true, process welcome img and send
-        if is_sending_img:
-            if is_randomising_img:
-                custom_img = await self.generate_random_welcome_img(member)
-            else:
-                custom_img = await self.generate_welcome_img(member)
+        if is_randomising_img:
+            custom_img = await self.generate_random_welcome_img(member)
+        elif is_sending_img:
+            custom_img = await self.generate_welcome_img(member)
 
-
+        send_msg = is_sending_msg or is_randomising_img
+        send_img = is_sending_img or is_randomising_img
 
         #provides appropriate response according to settings
-        if is_sending_msg and is_sending_img:
+        if send_msg and send_img:
             await channel.send(welcome_msg, file=discord.File(custom_img, filename = "output.png"))
 
-        elif not is_sending_msg and is_sending_img:
+        elif not send_msg and send_img:
             await channel.send(file=discord.File(custom_img, filename = "output.png"))
 
-        elif is_sending_msg and not is_sending_img:
+        elif send_msg and not send_img:
             await channel.send(welcome_msg, filename = "output.png")
 
-        elif not is_sending_msg and not is_sending_img:
+        elif not send_msg and not send_img:
             # do nothing
             pass
 
@@ -204,10 +203,24 @@ class AdvancedWelcomes(commands.Cog):
     @checks.mod_or_permissions(administrator=True)
     async def get_current_greeting(self, ctx):
         '''fetches the current set image/text greetings & mandatory message snippet'''
-        await ctx.send("Current Message is: "+ str(await self.config.guild(ctx.author.guild).get_attr("def_welcome_msg")()))
-        await ctx.send("Mandatory Message Fragment: " + str(await self.config.guild(ctx.author.guild).get_attr("mandatory_msg_frag")()))
-        base_img_path = os.path.join(self.data_dir, "default.png")  
-        await ctx.send("Current template image is: ", file=discord.File(base_img_path))
+
+        if await self.config.guild(ctx.author.guild).get_attr("randomise_msg")():
+            await ctx.send("Mandatory Message Fragment: " + str(await self.config.guild(ctx.author.guild).get_attr("mandatory_msg_frag")()))
+            await ctx.send("Message being randomised from pool")
+        elif await self.config.guild(ctx.author.guild).get_attr("toggle_msg")():
+            await ctx.send("Mandatory Message Fragment: " + str(await self.config.guild(ctx.author.guild).get_attr("mandatory_msg_frag")()))
+            await ctx.send("Current Message is: "+ str(await self.config.guild(ctx.author.guild).get_attr("def_welcome_msg")()))
+        else:
+            await ctx.send("Welcome messages are disabled.")
+
+        if await self.config.guild(ctx.author.guild).get_attr("randomise_img")():
+            await ctx.send("Image being randomised from pool")
+        elif await self.config.guild(ctx.author.guild).get_attr("toggle_img")():
+            base_img_path = os.path.join(self.data_dir, "default.png")  
+            await ctx.send("Current template image is: ", file=discord.File(base_img_path))
+        else:
+            await ctx.send("Welcome images are disabled.")
+        
 
     ### SET MESSAGE & PICTURE COMMANDS ###
     @customwelcome.group(aliases=["content"])
