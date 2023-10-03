@@ -80,7 +80,7 @@ class AdvancedWelcomes(commands.Cog):
             await channel.send(file=discord.File(custom_img, filename = "output.png"))
 
         elif send_msg and not send_img:
-            await channel.send(welcome_msg, filename = "output.png")
+            await channel.send(welcome_msg)
 
         elif not send_msg and not send_img:
             # do nothing
@@ -238,7 +238,7 @@ class AdvancedWelcomes(commands.Cog):
         """Base command for configuring the image/text used for customised welcome.This set of commands manages the non-random welcome settings."""
         pass
 
-    @setContent.command(name="txt")
+    @setContent.command(name="msg")
     @checks.mod_or_permissions(administrator=True)
     async def set_text(self, ctx, txt):
         """Sets the message to be sent when a user joins the server. This must be set before any welcome message is sent"""
