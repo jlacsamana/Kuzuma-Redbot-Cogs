@@ -261,7 +261,6 @@ class AdvancedWelcomes(commands.Cog):
     async def set_image(self, ctx):
         """Sets the image to be sent when a user joins the server. This must be set before any welcome image is sent. Please only attach 1 image, make it fit into the template provided"""
         base_img_path = os.path.join(self.data_dir, "default.png")
-        image = None
 
         #user needs to specify where in the image should be the center of the joining user's avatar should be
         await ctx.send("reply to this message with the pixel x-coordinate")
@@ -293,6 +292,13 @@ class AdvancedWelcomes(commands.Cog):
         except:
             await ctx.send("Adding image cancelled. Please try again and enter a valid number.")
             return
+        
+        image = None
+        if len(ctx.message.attachments) == 1:
+            image = ctx.message.attachments[0]
+            image.save(base_img_path)
+        else:
+            await ctx.reply("You need to attach exactly 1 image in the message that uses this command")
 
         #ok now set the coordinate for where to put the avatar
         fetched_coord_dict = await self.config.guild(ctx.author.guild).get_attr("img_avatar_cfgs")()
