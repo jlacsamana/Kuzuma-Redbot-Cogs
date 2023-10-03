@@ -266,14 +266,15 @@ class AdvancedWelcomes(commands.Cog):
         await ctx.send("reply to this message with the pixel x-coordinate")
         x_coord = -1
         try:
-            x_coord = await self.bot.wait_for("reply", check = lambda context: ctx.author == context.author,timeout=30)
+            x_coord = await self.bot.wait_for('message', check = lambda message: message.author == ctx.author,timeout=30)
         except asyncio.TimeoutError:
             await ctx.send("Adding image cancelled. Timed out. Try again")
             return
 
         try:
-            x_coord = int(x_coord)
+            x_coord = int(x_coord.content)
             assert(x_coord >= 0)
+            await ctx.send(f"x:{x_coord}")
         except:
             await ctx.send("Adding image cancelled. Please try again and enter a valid number.")
             return
@@ -281,14 +282,15 @@ class AdvancedWelcomes(commands.Cog):
         await ctx.send("reply to this message with the pixel y-coordinate")
         y_coord = -1
         try:
-            y_coord = await self.bot.wait_for("reply", check = lambda context: ctx.author == context.author,timeout=30)
+            y_coord = await self.bot.wait_for('message', check = lambda message: message.author == ctx.author,timeout=30)
         except asyncio.TimeoutError:
             await ctx.send("Adding image cancelled. Timed out. Try again")
             return
 
         try:
-            y_coord = int(y_coord)
+            y_coord = int(y_coord.content)
             assert(y_coord >= 0)
+            await ctx.send(f"y:{y_coord}")
         except:
             await ctx.send("Adding image cancelled. Please try again and enter a valid number.")
             return
@@ -296,7 +298,7 @@ class AdvancedWelcomes(commands.Cog):
         image = None
         if len(ctx.message.attachments) == 1:
             image = ctx.message.attachments[0]
-            image.save(base_img_path)
+            await image.save(base_img_path)
         else:
             await ctx.reply("You need to attach exactly 1 image in the message that uses this command")
 
@@ -343,14 +345,15 @@ class AdvancedWelcomes(commands.Cog):
         await ctx.send("reply to this message with the pixel x-coordinate")
         x_coord = -1
         try:
-            x_coord = await self.bot.wait_for("reply", check = lambda context: ctx.author == context.author,timeout=30)
+            x_coord = await self.bot.wait_for('message', check = lambda message: message.author == ctx.author,timeout=30)
         except asyncio.TimeoutError:
             await ctx.send("Adding image cancelled. Timed out. Try again")
             return
 
         try:
-            x_coord = int(x_coord)
+            x_coord = int(x_coord.content)
             assert(x_coord >= 0)
+            await ctx.send(f"x:{x_coord}")
         except:
             await ctx.send("Adding image cancelled. Please try again and enter a valid number.")
             return
@@ -358,14 +361,15 @@ class AdvancedWelcomes(commands.Cog):
         await ctx.send("reply to this message with the pixel y-coordinate")
         y_coord = -1
         try:
-            y_coord = await self.bot.wait_for("reply", check = lambda context: ctx.author == context.author,timeout=30)
+            y_coord = await self.bot.wait_for('message', check = lambda message: message.author == ctx.author,timeout=30)
         except asyncio.TimeoutError:
             await ctx.send("Adding image cancelled. Timed out. Try again")
             return
 
         try:
-            y_coord = int(y_coord)
+            y_coord = int(y_coord.content)
             assert(y_coord >= 0)
+            await ctx.send(f"y:{y_coord}")
         except:
             await ctx.send("Adding image cancelled. Please try again and enter a valid number.")
             return
@@ -419,6 +423,11 @@ class AdvancedWelcomes(commands.Cog):
         except:
             await ctx.reply("The named image doesn't exist")
             return
+        
+        #update coord info; remove
+        coordInfo = await self.config.guild(ctx.guild).get_attr("img_avatar_cfgs")()
+        coordInfo.pop(fileName)
+        await self.config.guild(ctx.author.guild).img_avatar_cfgs.set(coordInfo)
 
         if len(os.listdir(self.imgDir / str(ctx.channel.guild.id))) == 0:
             await self.config.guild(ctx.author.guild).toggle_img.set(False)
@@ -430,15 +439,20 @@ class AdvancedWelcomes(commands.Cog):
     @checks.mod_or_permissions(administrator=True)
     async def remove_msg(self, ctx, index):
         """removes a message to the random message pool"""
+        try:
+            index = int(index) - 1
+        except:
+            await ctx.send("Not a valid number")
+            return
         local_welcome_msgs = await self.config.guild(ctx.author.guild).get_attr("message_pool")()
         message = local_welcome_msgs[index]
 
         # return if out of bounds
-        if index < 1 or index > len(local_welcome_msgs):
+        if index < 0 or index > len(local_welcome_msgs):
             await ctx.reply("invalid index. Use listmsgs command to see indices.")
             return 
 
-        del local_welcome_msgs[index - 1]
+        del local_welcome_msgs[index]
 
         #updates database
         await self.config.guild(ctx.author.guild).message_pool.set(local_welcome_msgs)
@@ -476,7 +490,7 @@ class AdvancedWelcomes(commands.Cog):
         index = 0
         listOfMessages = ""
         for i in local_welcome_msgs:
-            listOfMessages = listOfMessages + f"\n {index + 1}. " + i
+            listOfMessages = listOfMessages + f"\n{index + 1}. " + i
             index += 1
 
         if len(listOfMessages) == 0:
@@ -503,19 +517,21 @@ class AdvancedWelcomes(commands.Cog):
         #get avatar from User
         avatar: bytes
 
-        try:
-            async with self.session.get(str(user.avatar_url), headers = self.headers) as webp:
-                avatar = await webp.read()
-        except aiohttp.ClientResponseError:
-            pass
+        # try:
+        #     async with self.session.get(str(user.avatar_url), headers = self.headers) as webp:
+        #         avatar = await webp.read()
+        # except aiohttp.ClientResponseError:
+        #     pass
+
+        avatar = await user.avatar.read()
 
         with Image.open(io.BytesIO(avatar)) as retrieved_avatar:
             if not retrieved_avatar:
                 return
             else:
                 #get coords
-                coords = self.config.guild(guild).get_attr("img_avatar_cfgs")().get("default.png")
-
+                coordInfo = await self.config.guild(guild).get_attr("img_avatar_cfgs")()
+                coords = coordInfo.get("default.png")
                 #base = base.resize((1193, 671), 2)
                 retrieved_avatar = retrieved_avatar.resize((325,325), 1)
                 base.paste(border_overlay, (coords[0],coords[1]), border_overlay_mask)
@@ -535,19 +551,21 @@ class AdvancedWelcomes(commands.Cog):
         #get avatar from User
         avatar: bytes
 
-        try:
-            async with self.session.get(str(user.avatar_url), headers = self.headers) as webp:
-                avatar = await webp.read()
-        except aiohttp.ClientResponseError:
-            pass
+        # try:
+        #     async with self.session.get(str(user.avatar_url), headers = self.headers) as webp:
+        #         avatar = await webp.read()
+        # except aiohttp.ClientResponseError:
+        #     pass
+
+        avatar = await user.avatar.read()
 
         with Image.open(io.BytesIO(avatar)) as retrieved_avatar:
             if not retrieved_avatar:
                 return
             else:
                 #get coords
-                coords = self.config.guild(guild).get_attr("img_avatar_cfgs")().get(chosen)
-
+                coordInfo = await self.config.guild(guild).get_attr("img_avatar_cfgs")()
+                coords = coordInfo.get(chosen)
                 #base = base.resize((1193, 671), 2) default (434,0)
                 retrieved_avatar = retrieved_avatar.resize((325,325), 1)
                 base.paste(border_overlay, (coords[0],coords[1]), border_overlay_mask)
@@ -581,3 +599,4 @@ class AdvancedWelcomes(commands.Cog):
 
         except OSError as info:
             await channel.send("Something went wrong...")
+
