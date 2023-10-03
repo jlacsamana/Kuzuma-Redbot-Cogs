@@ -108,7 +108,7 @@ class AdvancedWelcomes(commands.Cog):
         """Call this in the channel where you want to display welcomes"""
         # Your code will go here
         await self.config.guild(ctx.author.guild).welcome_msg_channel.set(ctx.channel.id)
-        await ctx.send("New welcome channel is: " + ctx.channel.name)
+        await ctx.send("New welcome channel is: " + ctx.channel.mention)
 
     @welcome_configs.command(name="getstatus")
     @checks.mod_or_permissions(administrator=True)
@@ -116,7 +116,10 @@ class AdvancedWelcomes(commands.Cog):
         """Call this in the channel where you want to display welcomes"""
         # Your code will go here
         channel = discord.utils.get(ctx.author.guild.channels, id= await self.config.guild(ctx.author.guild).get_attr("welcome_msg_channel")())
-        await ctx.send("Current welcome channel is: " + channel.name)
+        try:
+            await ctx.send("Current welcome channel is: " + channel.mention)
+        except error:
+            await ctx.send("There is no current channel set. Set one with the setch command.")
         await ctx.send("Sending custom message: " + str(await self.config.guild(ctx.author.guild).get_attr("toggle_msg")()))
         await ctx.send("Sending custom image: "+ str(await self.config.guild(ctx.author.guild).get_attr("toggle_img")()))
         await ctx.send("Randomising custom message: " + str(await self.config.guild(ctx.author.guild).get_attr("randomise_msg")()))
