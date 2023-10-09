@@ -248,14 +248,6 @@ class AdvancedWelcomes(commands.Cog):
         new_welcome_message = "New welcome message is : {}"
         await ctx.send(new_welcome_message.format(await self.config.guild(ctx.author.guild).get_attr("def_welcome_msg")()))
 
-    @setContent.command(name="mandatory")
-    @checks.mod_or_permissions(administrator=True)
-    async def set_mandatory_text(self, ctx, txt):
-        """Sets the mandatory message snippet to be sent with the message thats sent when a user joins the server"""
-        await self.config.guild(ctx.author.guild).mandatory_msg_frag.set(txt)
-        new_welcome_message = "New mandatory message snippet is : {}"
-        await ctx.send(new_welcome_message.format(await self.config.guild(ctx.author.guild).get_attr("mandatory_msg_frag")()))
-
     @setContent.command(name="img")
     @checks.mod_or_permissions(administrator=True)
     async def set_image(self, ctx):
