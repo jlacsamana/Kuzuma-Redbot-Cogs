@@ -210,6 +210,7 @@ class Usercommandmgmt(CustomCommands):
             await ctx.send("Custom command successfully deleted.")
 
     @customcom.command(name="edit")
+    @checks.mod_or_permissions(administrator=True)
     async def cc_edit(self, ctx, command: str.lower, *, text: str = None):
         """Edit a custom command.
 
