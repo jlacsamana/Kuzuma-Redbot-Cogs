@@ -131,7 +131,7 @@ class Usercommandmgmt(CustomCommands):
             return
 
         # overrides the mod process and limit check if user is an admin
-        if ctx.message.author.top_role.permissions.administrator:
+        if ctx.message.author.top_role.permissions.administrator or self.a_has_role_in_b(ctx.author.roles, self.mod_config.get_priveleged_roleIDs()):
             await ctx.send("Admin request detected. Bypassing checks")
             # custom command is created and the entry is added to the database
             try:
@@ -222,7 +222,7 @@ class Usercommandmgmt(CustomCommands):
         - `<command>` The custom command to edit.
         - `<text>` The new text to return when executing the command.
         """
-        if ctx.message.author.top_role.permissions.administrator:
+        if ctx.message.author.top_role.permissions.administrator or self.a_has_role_in_b(ctx.author.roles, self.mod_config.get_priveleged_roleIDs())::
             await ctx.send("Admin Override.")
 
             try:
