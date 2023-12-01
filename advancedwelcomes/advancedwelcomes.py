@@ -548,7 +548,7 @@ class AdvancedWelcomes(commands.Cog):
         await self.ensureCurrentServerHasImgCache(ctx.channel)
         fileName = f"{imgName}.png"
         try:
-            os.remove(os.path.join(self.imgDir, str(ctx.guild.id), fileName))
+            os.remove(os.path.join(self.img_Dir, str(ctx.guild.id), fileName))
         except:
             await ctx.reply("The named image doesn't exist")
             return
@@ -558,7 +558,7 @@ class AdvancedWelcomes(commands.Cog):
         coordInfo.pop(fileName)
         await self.config.guild(ctx.author.guild).img_avatar_cfgs.set(coordInfo)
 
-        if len(os.listdir(os.path.join(self.imgDir, str(ctx.channel.guild.id)))) == 0:
+        if len(os.listdir(os.path.join(self.img_Dir, str(ctx.channel.guild.id)))) == 0:
             await self.config.guild(ctx.author.guild).toggle_img.set(False)
             await ctx.reply("Last image deleted. Image randomiser turned off.")
 
@@ -617,7 +617,7 @@ class AdvancedWelcomes(commands.Cog):
         listOfImages = "\n".join(
             imagePath.stem
             for imagePath in pathlib.Path(
-                os.path.join(self.imgDir, str(ctx.channel.guild.id))
+                os.path.join(self.img_Dir, str(ctx.channel.guild.id))
             ).iterdir()
         )
         if len(listOfImages) == 0:
