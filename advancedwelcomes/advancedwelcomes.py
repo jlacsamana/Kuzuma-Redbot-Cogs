@@ -32,7 +32,7 @@ class AdvancedWelcomes(commands.Cog):
 
         self.config.register_guild(**default_guild)
         self.data_dir = data_manager.cog_data_path(cog_instance=self)
-        self.img_dir = os.path.join(self.data_dir, "welcome_imgs")
+        self.img_dir = self.data_dir / "welcome_imgs"
 
         self.session = aiohttp.ClientSession()
         # a header to successfully download user avatars for use
@@ -184,10 +184,7 @@ class AdvancedWelcomes(commands.Cog):
         value = not value
 
         # if setting to true, prevent toggle on if there is no image set
-        if (
-            value
-            and os.path.isfile(os.path.join(self.data_dir, "default.png")) == False
-        ):
+        if value and os.path.isfile(self.data_dir / "default.png") == False:
             await ctx.send("Set an image to use first please.")
             return
 
@@ -296,7 +293,7 @@ class AdvancedWelcomes(commands.Cog):
         if await self.config.guild(ctx.author.guild).get_attr("randomise_img")():
             await ctx.send("Image being randomised from pool")
         elif await self.config.guild(ctx.author.guild).get_attr("toggle_img")():
-            base_img_path = os.path.join(self.data_dir, "default.png")
+            base_img_path = self.data_dir / "default.png"
             await ctx.send(
                 "Current template image is: ", file=discord.File(base_img_path)
             )
@@ -332,7 +329,7 @@ class AdvancedWelcomes(commands.Cog):
     @checks.mod_or_permissions(administrator=True)
     async def set_image(self, ctx):
         """Sets the image to be sent when a user joins the server. This must be set before any welcome image is sent. Please only attach 1 image, make it fit into the template provided"""
-        base_img_path = os.path.join(self.data_dir, "default.png")
+        base_img_path = self.data_dir / "default.png"
 
         # user needs to specify where in the image should be the center of the joining user's avatar should be
         await ctx.send("reply to this message with the pixel x-coordinate")
@@ -423,7 +420,7 @@ class AdvancedWelcomes(commands.Cog):
         """adds another image to the random image pool"""
         # determine potential file name
         file_name = f"{name}.png"
-        img_path = os.path.join(self.img_dir, file_name)
+        img_path = self.img_dir / file_name
 
         if os.path.exists(img_path):
             await ctx.reply(
@@ -476,6 +473,7 @@ class AdvancedWelcomes(commands.Cog):
             )
             return
 
+        await ctx.send("reply to this message with the pixel radius")
         radius = -1
         try:
             radius = await self.bot.wait_for(
@@ -548,7 +546,7 @@ class AdvancedWelcomes(commands.Cog):
         await self.ensureCurrentServerHasImgCache(ctx.channel)
         fileName = f"{imgName}.png"
         try:
-            os.remove(os.path.join(self.img_dDir, str(ctx.guild.id), fileName))
+            os.remove(self.img_dir / str(ctx.guild.id) / fileName)
         except:
             await ctx.reply("The named image doesn't exist")
             return
@@ -558,7 +556,7 @@ class AdvancedWelcomes(commands.Cog):
         coordInfo.pop(fileName)
         await self.config.guild(ctx.author.guild).img_avatar_cfgs.set(coordInfo)
 
-        if len(os.listdir(os.path.join(self.img_dir, str(ctx.channel.guild.id)))) == 0:
+        if len(os.listdir(self.img_dir / str(ctx.channel.guild.id))) == 0:
             await self.config.guild(ctx.author.guild).toggle_img.set(False)
             await ctx.reply("Last image deleted. Image randomiser turned off.")
 
@@ -602,7 +600,7 @@ class AdvancedWelcomes(commands.Cog):
     async def get_template(self, ctx):
         """responds to command with the template for the welcome image so users can create their own easier"""
         await ctx.reply(
-            "Here is the template file! For best results please render the image at 72dpi, 1193 x 671. The bot will try to make it conform automatically but mileage may vary.",
+            "Here is the template file! The image is 72dpi, 1193 x 671, but you can use any resolution",
             file=discord.File(
                 os.path.join(
                     os.path.dirname(os.path.realpath(__file__)), "welcome_template.png"
@@ -617,7 +615,7 @@ class AdvancedWelcomes(commands.Cog):
         listOfImages = "\n".join(
             imagePath.stem
             for imagePath in pathlib.Path(
-                os.path.join(self.img_dir, str(ctx.channel.guild.id))
+                self.img_dir / str(ctx.channel.guild.id)
             ).iterdir()
         )
         if len(listOfImages) == 0:
@@ -660,7 +658,7 @@ class AdvancedWelcomes(commands.Cog):
     ### CUSTOM WELCOME PICTURE GENERATION ###
     async def generate_welcome_img(self, user, guild):
         """creates an image for the specific player using their avatar and the set base image, then returns it"""
-        base = Image.open(os.path.join(self.data_dir, "default.png"))
+        base = Image.open(self.data_dir / "default.png")
         mask = Image.open(
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "MASK.png")
         )
@@ -700,7 +698,7 @@ class AdvancedWelcomes(commands.Cog):
     async def generate_random_welcome_img(self, user, guild):
         """creates an image for the specific player using their avatar and an image from the random image pool, then returns it"""
         chosen = random.choice(os.listdir(self.img_dir))
-        base = Image.open(os.path.join(self.img_dir, chosen))
+        base = Image.open(self.img_dir / chosen)
         mask = Image.open(
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "MASK.png")
         )
@@ -757,7 +755,7 @@ class AdvancedWelcomes(commands.Cog):
         Check if there is a folder in the image cache for the associated server. If one doesn't exist, creates it.
         """
         idStr = str(channel.guild.id)
-        fp = os.path.join(self.img_dir, idStr)
+        fp = self.img_dir / idStr
         if os.path.exists(fp):
             return
 
