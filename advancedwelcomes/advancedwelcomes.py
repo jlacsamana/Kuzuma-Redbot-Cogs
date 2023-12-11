@@ -420,7 +420,7 @@ class AdvancedWelcomes(commands.Cog):
         """adds another image to the random image pool"""
         # determine potential file name
         file_name = f"{name}.png"
-        img_path = self.img_dir / file_name
+        img_path = self.img_dir / str(ctx.guild.id) / file_name
 
         if os.path.exists(img_path):
             await ctx.reply(
@@ -577,7 +577,7 @@ class AdvancedWelcomes(commands.Cog):
 
         # return if there are no messages added
         if len(local_welcome_msgs) < 1:
-            await ctx.reply("There are no images added yet.")
+            await ctx.reply("There are no messages added yet.")
             return
 
         # return if invalid number
