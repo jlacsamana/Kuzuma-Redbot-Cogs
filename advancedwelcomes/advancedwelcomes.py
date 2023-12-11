@@ -717,7 +717,7 @@ class AdvancedWelcomes(commands.Cog):
     async def generate_random_welcome_img(self, user, guild):
         """creates an image for the specific player using their avatar and an image from the random image pool, then returns it"""
         chosen = random.choice(os.listdir(self.img_dir))
-        base = Image.open(self.img_dir / chosen)
+        base = Image.open(self.img_dir / str(guild.id) / chosen)
         mask = Image.open(
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "MASK.png")
         )
