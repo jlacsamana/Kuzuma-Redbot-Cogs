@@ -625,8 +625,10 @@ class AdvancedWelcomes(commands.Cog):
         await self.ensureCurrentServerHasImgCache(ctx.channel)
 
         rawImgList = []
-        for imagePath in pathlib.Path(self.img_dir / str(ctx.channel.guild.id)).iterdir()
-            rawImgList.append(imagePath.stem )
+        for imagePath in pathlib.Path(
+            self.img_dir / str(ctx.channel.guild.id)
+        ).iterdir():
+            rawImgList.append(imagePath.stem)
 
         listOfImages = ""
 
