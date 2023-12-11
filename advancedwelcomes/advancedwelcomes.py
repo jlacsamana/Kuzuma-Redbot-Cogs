@@ -574,7 +574,6 @@ class AdvancedWelcomes(commands.Cog):
         local_welcome_msgs = await self.config.guild(ctx.author.guild).get_attr(
             "message_pool"
         )()
-        message = local_welcome_msgs[computer_index]
 
         # return if there are no messages added
         if len(local_welcome_msgs) < 1:
@@ -590,6 +589,8 @@ class AdvancedWelcomes(commands.Cog):
         if index > len(local_welcome_msgs):
             await ctx.reply("That indice does not point to any message.")
             return
+
+        message = local_welcome_msgs[computer_index]
 
         del local_welcome_msgs[computer_index]
 
