@@ -567,21 +567,31 @@ class AdvancedWelcomes(commands.Cog):
     async def remove_msg(self, ctx, index):
         """removes a message to the random message pool"""
         try:
-            index = int(index) - 1
+            computer_index = int(index) - 1
         except:
             await ctx.send("Not a valid number")
             return
         local_welcome_msgs = await self.config.guild(ctx.author.guild).get_attr(
             "message_pool"
         )()
-        message = local_welcome_msgs[index]
+        message = local_welcome_msgs[computer_index]
 
-        # return if out of bounds
-        if index < 0 or index > len(local_welcome_msgs):
+        # return if there are no messages added
+        if len(local_welcome_msgs) < 1:
+            await ctx.reply("There are no images added yet.")
+            return
+
+        # return if invalid number
+        if computer_index < 0:
             await ctx.reply("invalid index. Use listmsgs command to see indices.")
             return
 
-        del local_welcome_msgs[index]
+        # return if out of bounds
+        if index > len(local_welcome_msgs):
+            await ctx.reply("That indice does not point to any message.")
+            return
+
+        del local_welcome_msgs[computer_index]
 
         # updates database
         await self.config.guild(ctx.author.guild).message_pool.set(local_welcome_msgs)
