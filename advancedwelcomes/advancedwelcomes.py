@@ -623,12 +623,18 @@ class AdvancedWelcomes(commands.Cog):
     async def listImg(self, ctx):
         """Display a list of all the images in this server's image cache"""
         await self.ensureCurrentServerHasImgCache(ctx.channel)
-        listOfImages = "\n".join(
-            imagePath.stem
-            for imagePath in pathlib.Path(
-                self.img_dir / str(ctx.channel.guild.id)
-            ).iterdir()
-        )
+
+        rawImgList = []
+        for imagePath in pathlib.Path(self.img_dir / str(ctx.channel.guild.id)).iterdir()
+            rawImgList.append(imagePath.stem )
+
+        listOfImages = ""
+
+        index = 0
+        for imgName in rawImgList:
+            listOfImages = listOfImages + f"\n{index + 1}: " + imgName
+            index += 1
+
         if len(listOfImages) == 0:
             await ctx.reply("No images added yet.")
             return
